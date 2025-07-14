@@ -11,6 +11,8 @@ EasyCV is an intelligent resume generation tool that uses AI to create professio
 - **Version Management**: Automatic versioning and cleanup of old resume versions
 - **GitHub Pages Ready**: Generates websites ready for deployment to GitHub Pages
 - **Template System**: Flexible template system for different resume layouts
+- **Web Interface**: User-friendly Gradio-based web interface for easy file upload and resume generation
+- **Cross-Platform**: Compatible with Windows, macOS, and Linux systems
 - **Command Line Interface**: Easy-to-use CLI for batch processing and automation
 
 ## Project Structure
@@ -25,14 +27,18 @@ EasyCV/
 │   │   └── output_generator.py  # Multi-format output generation
 │   ├── utils/                   # Utility modules
 │   │   ├── file_utils.py        # File operations and management
-│   │   └── version_manager.py   # Version control for profiles
+│   │   ├── version_manager.py   # Version control for profiles
+│   │   └── path_utils.py        # Cross-platform path handling
 │   ├── generators/              # Format-specific generators
 │   │   ├── markdown_generator.py # Markdown output
 │   │   ├── word_generator.py     # Word document output
 │   │   └── website_generator.py  # HTML/website output
+│   ├── web/                     # Web interface
+│   │   └── gradio_app.py        # Gradio-based web UI
 │   ├── templates/               # Resume templates
 │   ├── static/                  # Static assets for websites
 │   ├── main.py                  # Main CLI application
+│   ├── launch_ui.py            # Web interface launcher
 │   ├── config.py               # Configuration management
 │   └── requirements.txt        # Python dependencies
 ├── templates/                   # Global templates
@@ -75,6 +81,54 @@ pip install -r requirements.txt
    ```
 
 ## Usage
+
+EasyCV provides two main ways to use the tool: a user-friendly **Web Interface** for beginners and a powerful **Command Line Interface** for advanced users and automation.
+
+### 🌐 Web Interface (Recommended for Beginners)
+
+The web interface provides an intuitive, point-and-click experience for resume generation.
+
+#### Quick Start
+
+1. **Launch the Web Interface**:
+   ```bash
+   cd v2
+   python launch_ui.py
+   ```
+
+2. **Access in Browser**: 
+   - The interface will automatically open in your default browser
+   - Or visit: `http://localhost:7860`
+
+3. **Upload and Generate**:
+   - Upload your existing resume/documents (PDF, DOCX, Markdown, TXT)
+   - Enter the target job description
+   - Click "Generate Resume"
+   - Download your professionally formatted resume
+
+#### Web Interface Features
+
+- **📁 Drag & Drop File Upload**: Easily upload multiple documents
+- **🎯 Job-Targeted Optimization**: Paste job descriptions for AI optimization
+- **📝 Template Customization**: Edit resume templates in real-time
+- **🎨 Style Reference**: Upload reference resumes for style matching
+- **📊 Multi-Format Output**: Generate Markdown, Word, and HTML simultaneously
+- **📂 Profile Management**: View and manage existing resume profiles
+- **🔧 Cross-Platform**: Works on Windows, macOS, and Linux
+
+#### Supported File Types
+
+- **Input**: PDF, DOCX, Markdown (.md), Plain Text (.txt)
+- **Output**: Markdown (.md), Word (.docx), HTML website
+
+#### Platform Compatibility
+
+The web interface automatically handles file paths for different operating systems:
+- **Windows**: `C:\Users\Username\Documents\resume.pdf`
+- **macOS**: `/Users/Username/Documents/resume.pdf`
+- **Linux**: `/home/username/Documents/resume.pdf`
+
+### 📟 Command Line Interface
 
 ### Basic Usage
 
@@ -285,12 +339,29 @@ mypy .
    - Ensure output directory is writable
    - Verify all dependencies are installed
 
+4. **Web Interface Issues**
+   - **Interface won't start**: Check if Gradio is installed (`pip install gradio>=4.0.0`)
+   - **File upload fails**: Ensure file size is under 100MB and format is supported
+   - **Cross-platform path errors**: The tool automatically handles Windows/macOS paths
+   - **Port already in use**: Try changing the port: `python launch_ui.py --server-port 7861`
+   - **Browser doesn't open**: Manually visit `http://localhost:7860`
+
 ### Debug Mode
 
-Run with debug logging to troubleshoot issues:
-
+**For Command Line Interface:**
 ```bash
 python main.py generate --log-level DEBUG [other options]
+```
+
+**For Web Interface:**
+```bash
+# Launch with debug mode
+cd v2
+python -c "
+from web.gradio_app import EasyCVGradioApp
+app = EasyCVGradioApp()
+app.launch(debug=True)
+"
 ```
 
 ## License
