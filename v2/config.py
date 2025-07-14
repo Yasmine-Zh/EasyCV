@@ -325,4 +325,7 @@ class Config:
             raise Exception(f"Error creating sample config: {str(e)}")
 
 # Global configuration instance
-config = Config() 
+config = Config()
+
+# 别名，用于向后兼容
+ConfigManager = Config 

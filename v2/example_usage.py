@@ -47,7 +47,7 @@ def demonstrate_document_parsing():
     try:
         from core.document_parser import DocumentParser
         
-        parser = DocumentParser()
+        parser = DocumentParser(verbose=True)
         
         print("Supported formats:", parser.SUPPORTED_FORMATS)
         

@@ -233,4 +233,16 @@ class VersionManager:
         
         self.logger.info(f"Cleanup: keeping {len(versions_to_keep)}, removing {len(versions_to_remove)}")
         
-        return versions_to_keep, versions_to_remove 
+        return versions_to_keep, versions_to_remove
+    
+    def get_timestamp(self, format_string: str = "%Y-%m-%d %H:%M") -> str:
+        """
+        Get current timestamp as formatted string.
+        
+        Args:
+            format_string: Format for the timestamp (default: "%Y-%m-%d %H:%M")
+            
+        Returns:
+            Formatted timestamp string
+        """
+        return datetime.now().strftime(format_string) 

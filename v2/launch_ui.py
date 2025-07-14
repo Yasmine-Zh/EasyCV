@@ -59,11 +59,25 @@ def main():
         print("-" * 50)
         
         app = EasyCVGradioApp()
-        app.launch(
-            share=False,
-            debug=False,
-            inbrowser=True  # Automatically open in browser
-        )
+        
+        # 首先尝试本地启动
+        try:
+            app.launch(
+                share=False,
+                debug=False,
+                inbrowser=True  # Automatically open in browser
+            )
+        except ValueError as e:
+            if "localhost is not accessible" in str(e) or "shareable link must be created" in str(e):
+                print("⚠️  本地访问失败，正在创建公共分享链接...")
+                print("🌐 这将创建一个可通过互联网访问的临时链接")
+                app.launch(
+                    share=True,
+                    debug=False,
+                    inbrowser=True
+                )
+            else:
+                raise e
         
     except ImportError as e:
         print(f"❌ 导入错误: {e}")

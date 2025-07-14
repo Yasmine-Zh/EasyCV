@@ -8,8 +8,16 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from ..utils import FileUtils, VersionManager
-from ..generators import MarkdownGenerator, WordGenerator, WebsiteGenerator
+try:
+    from ..utils import FileUtils, VersionManager
+    from ..generators import MarkdownGenerator, WordGenerator, WebsiteGenerator
+except ImportError:
+    # 回退到绝对导入（当作为独立脚本运行时）
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils import FileUtils, VersionManager
+    from generators import MarkdownGenerator, WordGenerator, WebsiteGenerator
 
 class OutputGenerator:
     """Coordinates the generation of multiple output formats for resumes."""
@@ -251,4 +259,227 @@ class OutputGenerator:
             
         except Exception as e:
             self.logger.error(f"Error getting profile info for {profile_dir}: {str(e)}")
-            return None 
+            return None
+    
+    def generate_word(self, content: str, output_path: str) -> None:
+        """
+        Generate Word document from markdown content.
+        
+        Args:
+            content: Markdown content to convert
+            output_path: Path where to save the Word document
+        """
+        try:
+            # 尝试使用简化的Word生成
+            try:
+                from docx import Document
+                from docx.shared import Inches
+                
+                # 创建新文档
+                doc = Document()
+                
+                # 设置页边距
+                sections = doc.sections
+                for section in sections:
+                    section.top_margin = Inches(1)
+                    section.bottom_margin = Inches(1)
+                    section.left_margin = Inches(1)
+                    section.right_margin = Inches(1)
+                
+                # 简单转换markdown到Word
+                lines = content.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    # 处理标题
+                    if line.startswith('# '):
+                        p = doc.add_heading(line[2:], level=1)
+                    elif line.startswith('## '):
+                        p = doc.add_heading(line[3:], level=2)
+                    elif line.startswith('### '):
+                        p = doc.add_heading(line[4:], level=3)
+                    else:
+                        # 普通段落
+                        p = doc.add_paragraph(line)
+                
+                # 保存文档
+                doc.save(output_path)
+                self.logger.info(f"Word document generated successfully: {output_path}")
+                
+            except ImportError:
+                # python-docx 不可用，创建RTF格式替代
+                self.logger.warning("python-docx not available, creating RTF file instead")
+                rtf_path = output_path.replace('.docx', '.rtf')
+                
+                # 简单的RTF格式
+                rtf_content = "{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}} "
+                rtf_content += content.replace('\n', '\\par ')
+                rtf_content += "}"
+                
+                with open(rtf_path, 'w', encoding='utf-8') as f:
+                    f.write(rtf_content)
+                    
+                self.logger.info(f"RTF document generated successfully: {rtf_path}")
+                
+        except Exception as e:
+            self.logger.error(f"Error generating Word document: {str(e)}")
+            # 创建简单的文本文件作为回退
+            try:
+                txt_path = output_path.replace('.docx', '.txt')
+                with open(txt_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                self.logger.info(f"Text file created as fallback: {txt_path}")
+            except Exception as fallback_error:
+                self.logger.error(f"Fallback text file creation also failed: {fallback_error}")
+                raise
+    
+    def generate_website(self, content: str, output_dir: str, filename_base: str) -> None:
+        """
+        Generate HTML website from markdown content.
+        
+        Args:
+            content: Markdown content to convert
+            output_dir: Directory where to save the HTML files
+            filename_base: Base filename for the HTML file
+        """
+        try:
+            output_path = Path(output_dir) / f"{filename_base}.html"
+            
+            # 尝试使用markdown转HTML
+            try:
+                import markdown
+                html_content = markdown.markdown(content)
+            except ImportError:
+                # 如果没有markdown库，进行简单转换
+                self.logger.warning("markdown library not available, using simple HTML conversion")
+                html_content = self._simple_markdown_to_html(content)
+            
+            # 创建完整的HTML文档
+            full_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{filename_base} - Resume</title>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }}
+        .container {{
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }}
+        h1 {{
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }}
+        h2 {{
+            color: #34495e;
+            margin-top: 30px;
+        }}
+        h3 {{
+            color: #7f8c8d;
+        }}
+        p {{
+            margin-bottom: 15px;
+        }}
+        ul {{
+            margin-bottom: 15px;
+        }}
+        @media print {{
+            body {{
+                background-color: white;
+            }}
+            .container {{
+                box-shadow: none;
+                padding: 0;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        {html_content}
+    </div>
+</body>
+</html>"""
+            
+            # 保存HTML文件
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(full_html)
+                
+            self.logger.info(f"HTML website generated successfully: {output_path}")
+            
+        except Exception as e:
+            self.logger.error(f"Error generating HTML website: {str(e)}")
+            raise
+    
+    def _simple_markdown_to_html(self, markdown_content: str) -> str:
+        """
+        Simple markdown to HTML conversion when markdown library is not available.
+        
+        Args:
+            markdown_content: Markdown content to convert
+            
+        Returns:
+            HTML content
+        """
+        lines = markdown_content.split('\n')
+        html_lines = []
+        in_list = False
+        
+        for line in lines:
+            line = line.strip()
+            
+            if not line:
+                if in_list:
+                    html_lines.append('</ul>')
+                    in_list = False
+                html_lines.append('<br>')
+                continue
+            
+            # 处理标题
+            if line.startswith('### '):
+                if in_list:
+                    html_lines.append('</ul>')
+                    in_list = False
+                html_lines.append(f'<h3>{line[4:]}</h3>')
+            elif line.startswith('## '):
+                if in_list:
+                    html_lines.append('</ul>')
+                    in_list = False
+                html_lines.append(f'<h2>{line[3:]}</h2>')
+            elif line.startswith('# '):
+                if in_list:
+                    html_lines.append('</ul>')
+                    in_list = False
+                html_lines.append(f'<h1>{line[2:]}</h1>')
+            # 处理列表
+            elif line.startswith('- ') or line.startswith('* '):
+                if not in_list:
+                    html_lines.append('<ul>')
+                    in_list = True
+                html_lines.append(f'<li>{line[2:]}</li>')
+            # 普通段落
+            else:
+                if in_list:
+                    html_lines.append('</ul>')
+                    in_list = False
+                html_lines.append(f'<p>{line}</p>')
+        
+        # 关闭未关闭的列表
+        if in_list:
+            html_lines.append('</ul>')
+        
+        return '\n'.join(html_lines) 

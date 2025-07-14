@@ -288,4 +288,188 @@ Format your response as a structured analysis that can guide the creation of sim
             
         except Exception as e:
             self.logger.error(f"Error analyzing style: {str(e)}")
-            return {"analysis": "Style analysis failed", "error": str(e)} 
+            return {"analysis": "Style analysis failed", "error": str(e)}
+    
+    def generate_resume_content(self, experience_docs: str, job_description: str, 
+                               style_reference: str = "", language: str = "english") -> Dict[str, Any]:
+        """
+        Generate structured resume content using AI.
+        
+        Args:
+            experience_docs: Extracted content from uploaded documents
+            job_description: Target job description
+            style_reference: Optional style reference content
+            language: Target language for the resume (default: "english")
+            
+        Returns:
+            Dictionary containing structured resume data
+        """
+        try:
+            # Language-specific instructions
+            language_instructions = {
+                "english": "Generate ALL content in ENGLISH only. Use professional American English terminology.",
+                "chinese": "Generate ALL content in CHINESE only. Use professional Chinese terminology.",
+                "bilingual": "Generate content with both English and Chinese versions where appropriate."
+            }
+            
+            instruction = language_instructions.get(language, language_instructions["english"])
+            
+            prompt = f"""
+{instruction}
+
+Based on the following information, generate a structured resume for a job application:
+
+TARGET JOB DESCRIPTION:
+{job_description}
+
+CANDIDATE'S BACKGROUND (from uploaded documents):
+{experience_docs}
+
+{f"STYLE REFERENCE (use as formatting guide): {style_reference}" if style_reference else ""}
+
+Please generate a well-structured resume with the following components. Return ONLY valid JSON:
+
+{{
+    "name": "Extract or infer candidate's full name",
+    "contact": "Extract contact information (email, phone, etc.)",
+    "summary": "Write a compelling 2-3 sentence professional summary tailored to the target job",
+    "experience": "Summarize relevant work experience, highlighting achievements that match job requirements",
+    "education": "List educational background relevant to the position",
+    "skills": "List key technical and soft skills that match the job requirements",
+    "projects": "Highlight relevant projects or accomplishments",
+    "certifications": "List any relevant certifications or licenses",
+    "achievements": "Notable achievements or awards"
+}}
+
+Focus on:
+1. Matching the candidate's experience to the job requirements
+2. Using action verbs and quantifiable achievements
+3. Maintaining professional tone and formatting
+4. Emphasizing skills and experience most relevant to the target position
+"""
+            
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": f"You are an expert resume writer and career counselor. {instruction}"},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2
+            )
+            
+            content = response.choices[0].message.content.strip()
+            
+            # Try to parse as JSON first
+            try:
+                import json
+                resume_data = json.loads(content)
+                return resume_data
+            except json.JSONDecodeError:
+                # If JSON parsing fails, extract content manually
+                self.logger.warning("AI response was not valid JSON, using fallback parsing")
+                return self._parse_resume_content_fallback(content, language)
+                
+        except Exception as e:
+            self.logger.error(f"Error generating resume content: {str(e)}")
+            # Return fallback content based on language
+            return self._get_fallback_resume_content(language)
+    
+    def _parse_resume_content_fallback(self, content: str, language: str) -> Dict[str, Any]:
+        """
+        Fallback method to parse resume content when JSON parsing fails.
+        
+        Args:
+            content: Raw AI response content
+            language: Target language
+            
+        Returns:
+            Dictionary containing structured resume data
+        """
+        # Basic parsing logic - can be enhanced
+        lines = content.split('\n')
+        
+        resume_data = {
+            "name": "候选人姓名" if language == "chinese" else "Candidate Name",
+            "contact": "联系方式待填写" if language == "chinese" else "Contact information to be filled",
+            "summary": "个人简介待填写" if language == "chinese" else "Professional summary to be filled",
+            "experience": "工作经验待填写" if language == "chinese" else "Work experience to be filled",
+            "education": "教育背景待填写" if language == "chinese" else "Educational background to be filled",
+            "skills": "技能列表待填写" if language == "chinese" else "Skills list to be filled",
+            "projects": "项目经验待填写" if language == "chinese" else "Project experience to be filled",
+            "certifications": "认证信息待填写" if language == "chinese" else "Certifications to be filled",
+            "achievements": "成就奖项待填写" if language == "chinese" else "Achievements to be filled"
+        }
+        
+        # Try to extract content from lines
+        current_section = None
+        for line in lines:
+            line = line.strip()
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip().lower()
+                value = value.strip()
+                
+                # Map common keys
+                if 'name' in key or '姓名' in key:
+                    resume_data['name'] = value
+                elif 'contact' in key or '联系' in key:
+                    resume_data['contact'] = value
+                elif 'summary' in key or '简介' in key:
+                    resume_data['summary'] = value
+                elif 'experience' in key or '经验' in key:
+                    resume_data['experience'] = value
+                elif 'education' in key or '教育' in key:
+                    resume_data['education'] = value
+                elif 'skill' in key or '技能' in key:
+                    resume_data['skills'] = value
+                elif 'project' in key or '项目' in key:
+                    resume_data['projects'] = value
+        
+        return resume_data
+    
+    def _get_fallback_resume_content(self, language: str) -> Dict[str, Any]:
+        """
+        Get fallback resume content when AI generation fails.
+        
+        Args:
+            language: Target language
+            
+        Returns:
+            Dictionary containing fallback resume data
+        """
+        if language == "chinese":
+            return {
+                "name": "候选人姓名",
+                "contact": "邮箱: example@email.com\n电话: +86 123-4567-8900",
+                "summary": "经验丰富的专业人士，具有强大的技术背景和解决问题的能力。",
+                "experience": "相关工作经验，包括主要职责和成就。",
+                "education": "教育背景，包括学位和主要课程。",
+                "skills": "Python, JavaScript, 项目管理, 团队协作",
+                "projects": "重要项目经验和取得的成果。",
+                "certifications": "相关认证和证书。",
+                "achievements": "主要成就和获得的奖项。"
+            }
+        elif language == "bilingual":
+            return {
+                "name": "Candidate Name / 候选人姓名",
+                "contact": "Email: example@email.com / 邮箱: example@email.com\nPhone: +1 123-456-7890 / 电话: +86 123-4567-8900",
+                "summary": "Experienced professional with strong technical background / 经验丰富的专业人士，具有强大的技术背景",
+                "experience": "Relevant work experience / 相关工作经验",
+                "education": "Educational background / 教育背景",
+                "skills": "Python, JavaScript, Project Management / Python, JavaScript, 项目管理",
+                "projects": "Important project experience / 重要项目经验",
+                "certifications": "Relevant certifications / 相关认证",
+                "achievements": "Major achievements / 主要成就"
+            }
+        else:  # english
+            return {
+                "name": "Candidate Name",
+                "contact": "email: example@email.com\nphone: +1 123-456-7890",
+                "summary": "Experienced professional with strong technical background and problem-solving abilities.",
+                "experience": "Relevant work experience with key responsibilities and achievements.",
+                "education": "Educational background including degrees and relevant coursework.",
+                "skills": "Python, JavaScript, Project Management, Team Collaboration",
+                "projects": "Important project experience and achieved results.",
+                "certifications": "Relevant certifications and licenses.",
+                "achievements": "Major achievements and awards received."
+            } 
