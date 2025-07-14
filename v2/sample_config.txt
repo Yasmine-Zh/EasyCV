@@ -1,0 +1,38 @@
+# EasyCV Configuration File
+# Remove the # to enable a setting
+
+# Directories
+#output_dir=profiles
+#template_dir=templates
+
+# AI Settings (Required for AI features)
+#openai_api_key=your_openai_api_key_here
+#ai_model=gpt-4
+#ai_temperature=0.3
+#ai_max_tokens=2000
+
+# Generation Settings
+#keep_versions=5
+#auto_cleanup=true
+#generate_all_formats=true
+#default_theme=professional
+
+# Output Settings
+#include_metadata=true
+#add_timestamps=true
+#create_index_html=true
+#github_pages_config=true
+
+# Logging
+#log_level=INFO
+#log_file=easycv.log
+
+# Feature Flags
+#enable_style_analysis=true
+#enable_ai_enhancement=true
+#enable_validation=true
+
+# Limits
+#max_file_size_mb=10
+#max_files_per_batch=20
+#timeout_seconds=300
