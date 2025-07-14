@@ -1,0 +1,119 @@
+feat: 添加Gradio Web界面并实现多语言简历生成支持
+
+## 🚀 主要新功能
+
+### Web界面模块
+- 新增完整的Gradio Web用户界面，提供图形化操作
+- 实现文件拖拽上传功能（支持PDF、DOCX、Markdown、TXT）
+- 添加实时简历生成和预览功能
+- 提供三个兼容性版本：标准版、简化版、最小版
+
+### 多语言支持
+- 完整支持英文、中文、双语简历生成
+- CLI添加--language参数，支持命令行语言选择
+- AI处理模块增强语言指令处理
+- 新增英文简历模板和使用示例
+
+### 跨平台兼容性
+- 实现完整的跨平台文件路径处理
+- 新增path_utils工具模块，支持macOS/Windows路径规范化
+- 文件名安全性处理和目录创建保护
+
+## 🔧 技术改进
+
+### Gradio兼容性修复
+- 解决Gradio 4.x版本JSON schema bug问题
+- 降级至Gradio 3.50.2确保稳定性
+- 简化组件配置避免复杂参数引起的错误
+- 移除可能导致兼容性问题的高级功能
+
+### 核心功能增强
+- AI处理器支持语言特定的内容生成
+- 输出生成器优化多格式导出
+- 模板引擎支持动态语言切换
+- 错误处理和回退机制完善
+
+### 项目结构优化
+- 重构utils模块，添加专用工具函数
+- 完善web目录结构和模块组织
+- 统一配置管理和环境变量处理
+
+## 📁 新增文件
+
+### 核心模块
+- `v2/utils/path_utils.py` - 跨平台路径处理工具
+- `v2/web/gradio_app.py` - 标准版Gradio界面
+- `v2/web/gradio_app_simple.py` - 简化版界面
+- `v2/web/gradio_app_minimal.py` - 最小兼容版界面
+
+### 启动器
+- `v2/launch_ui.py` - 标准版Web界面启动器
+- `v2/launch_ui_simple.py` - 简化版启动器  
+- `v2/launch_ui_minimal.py` - 最小版启动器
+
+### 模板和文档
+- `v2/templates/English_Resume_Template.md` - 英文简历模板
+- `v2/example_english_usage.py` - 英文简历生成示例
+
+## 🔄 主要修改
+
+### 依赖更新
+- requirements.txt: 添加gradio依赖，降级至3.50.2版本
+- 兼容性测试：Python 3.8+ 支持
+
+### CLI增强
+- main.py: 添加--language参数支持
+- 保持向后兼容性，默认英文输出
+
+### AI处理增强
+- ai_processor.py: 实现多语言处理逻辑
+- 添加语言特定的提示词和模板
+
+### 文档更新
+- README.md: 全面更新，添加Web界面使用说明
+- 新增跨平台兼容性说明和故障排除指南
+
+## 🎯 使用方式
+
+### Web界面
+```bash
+cd v2
+python launch_ui_minimal.py  # 推荐：最佳兼容性
+python launch_ui_simple.py   # 简化版
+python launch_ui.py          # 完整版
+```
+
+### CLI（增强版）
+```bash
+python main.py --language english --input resume.pdf --profile "John_Doe"
+python main.py --language chinese --input 简历.docx --profile "张三"
+python main.py --language bilingual --input resume.md --profile "Bilingual_User"
+```
+
+## 🏗️ 架构改进
+
+- **模块化设计**: Web界面与CLI功能完全分离
+- **渐进增强**: 三层兼容性策略适应不同环境
+- **错误恢复**: 完善的fallback机制和错误处理
+- **跨平台**: 统一的路径处理和文件操作
+
+## 🐛 问题修复
+
+- 修复Gradio 4.x版本JSON schema类型错误
+- 解决多文件上传的兼容性问题
+- 修复跨平台路径分隔符问题
+- 改进错误信息和用户反馈
+
+## 📊 测试覆盖
+
+- ✅ Python 3.9环境测试通过
+- ✅ macOS平台兼容性验证
+- ✅ Gradio 3.50.2稳定性测试
+- ✅ 多语言输出质量验证
+- ✅ CLI向后兼容性确认
+
+---
+
+**Breaking Changes**: 无，完全向后兼容
+**Migration**: 建议升级至新版本以获得Web界面功能
+**Environment**: Python 3.8+, 支持macOS/Windows/Linux 

@@ -39,13 +39,15 @@ class AIProcessor:
         # Initialize OpenAI client
         self.client = OpenAI(api_key=self.api_key)
     
-    def extract_relevant_experience(self, documents_text: Dict[str, str], job_description: str) -> str:
+    def extract_relevant_experience(self, documents_text: Dict[str, str], job_description: str, 
+                                   language: str = "english") -> str:
         """
         Extract and summarize relevant experience from documents based on job description.
         
         Args:
             documents_text: Dictionary mapping file paths to extracted text
             job_description: Target job description
+            language: Target language for the output (default: "english")
             
         Returns:
             Extracted and formatted relevant experience
@@ -55,8 +57,19 @@ class AIProcessor:
             for file_path, content in documents_text.items()
         ])
         
+        # Language-specific instructions
+        language_instructions = {
+            "english": "Generate ALL content in ENGLISH only. Use professional American English terminology.",
+            "chinese": "Generate ALL content in CHINESE only. Use professional Chinese terminology.",
+            "bilingual": "Generate content with both English and Chinese versions where appropriate."
+        }
+        
+        language_instruction = language_instructions.get(language.lower(), language_instructions["english"])
+        
         prompt = f"""
 You are an expert resume writer. Extract and summarize the most relevant experience from the user's documents to match the target job description.
+
+LANGUAGE REQUIREMENT: {language_instruction}
 
 TARGET JOB DESCRIPTION:
 {job_description}
@@ -64,13 +77,15 @@ TARGET JOB DESCRIPTION:
 USER DOCUMENTS:
 {all_text}
 
-INSTRUCTIONS:
-1. Focus on experiences that directly relate to the job requirements
-2. Highlight quantifiable achievements and measurable results
-3. Use keywords from the job description where appropriate
-4. Organize the information clearly under relevant headings
-5. Emphasize technical skills and tools mentioned in the job description
-6. Format the response as structured markdown
+CRITICAL INSTRUCTIONS:
+1. **LANGUAGE**: {language_instruction}
+2. Focus on experiences that directly relate to the job requirements
+3. Highlight quantifiable achievements and measurable results
+4. Use keywords from the job description where appropriate
+5. Organize the information clearly under relevant headings
+6. Emphasize technical skills and tools mentioned in the job description
+7. Format the response as structured markdown
+8. ALL output must be in {language.upper()} language only
 
 Please extract and format the most relevant information under these sections:
 - Experience (with specific projects and achievements)
@@ -79,13 +94,16 @@ Please extract and format the most relevant information under these sections:
 - Achievements (awards, certifications, notable accomplishments)
 
 Focus on making the candidate's background appear as relevant as possible to the target role.
+Generate ALL content in {language.upper()} language only.
 """
+
+        system_message = f"You are an expert resume writer who helps candidates highlight their most relevant experience for specific job opportunities. Always respond in {language.upper()} only."
         
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an expert resume writer who helps candidates highlight their most relevant experience for specific job opportunities."},
+                    {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3
@@ -98,7 +116,8 @@ Focus on making the candidate's background appear as relevant as possible to the
             raise Exception(f"Failed to process content with AI: {str(e)}")
     
     def generate_profile_from_template(self, template_content: str, extracted_info: str, 
-                                     profile_name: str, job_description: str) -> str:
+                                     profile_name: str, job_description: str, 
+                                     language: str = "english") -> str:
         """
         Generate a complete profile by filling template with extracted information.
         
@@ -107,12 +126,25 @@ Focus on making the candidate's background appear as relevant as possible to the
             extracted_info: AI-extracted relevant information
             profile_name: Name for the profile
             job_description: Target job description
+            language: Target language for the resume (default: "english")
             
         Returns:
             Complete profile content in markdown format
         """
+        
+        # Language-specific instructions
+        language_instructions = {
+            "english": "Generate ALL content in ENGLISH only. Use professional American English terminology and formatting conventions.",
+            "chinese": "Generate ALL content in CHINESE only. Use professional Chinese terminology and formatting conventions.",
+            "bilingual": "Generate content with both English and Chinese versions where appropriate."
+        }
+        
+        language_instruction = language_instructions.get(language.lower(), language_instructions["english"])
+        
         prompt = f"""
 You are creating a professional resume using a specific template format. Fill in the template with the provided extracted information.
+
+LANGUAGE REQUIREMENT: {language_instruction}
 
 TEMPLATE FORMAT:
 {template_content}
@@ -125,23 +157,27 @@ TARGET JOB DESCRIPTION:
 
 PROFILE NAME: {profile_name}
 
-INSTRUCTIONS:
-1. Follow the exact structure and format of the template
-2. Replace placeholder content with relevant information from the extracted data
-3. Ensure all sections are filled appropriately
-4. Maintain professional language and formatting
-5. Prioritize information most relevant to the target job
-6. Include quantifiable achievements where possible
-7. Use keywords from the job description naturally
+CRITICAL INSTRUCTIONS:
+1. **LANGUAGE**: {language_instruction}
+2. Follow the exact structure and format of the template
+3. Replace placeholder content with relevant information from the extracted data
+4. Ensure all sections are filled appropriately
+5. Maintain professional language and formatting
+6. Prioritize information most relevant to the target job
+7. Include quantifiable achievements where possible
+8. Use keywords from the job description naturally
+9. ALL output must be in {language.upper()} language only
 
-Please generate the complete profile following the template structure exactly.
+Please generate the complete profile following the template structure exactly and in {language.upper()} language.
 """
+        
+        system_message = f"You are a professional resume writer who creates tailored resumes in {language.upper()} language based on specific templates and job requirements. Always respond in {language.upper()} only."
         
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a professional resume writer who creates tailored resumes based on specific templates and job requirements."},
+                    {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.2
