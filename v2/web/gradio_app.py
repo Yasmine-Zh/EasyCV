@@ -36,7 +36,30 @@ try:
         # Fallback ConfigManager for testing
         class ConfigManager:
             def __init__(self):
-                pass
+                self.settings = {
+                    'output_dir': 'profiles',
+                    'template_dir': 'templates',
+                    'openai_api_key': None,
+                    'ai_model': 'gpt-4',
+                    'ai_temperature': 0.3,
+                    'keep_versions': 5,
+                    'generate_all_formats': True,
+                    'default_theme': 'professional',
+                    'log_level': 'INFO'
+                }
+            
+            def get(self, key: str, default=None):
+                return self.settings.get(key, default)
+            
+            def set(self, key: str, value):
+                self.settings[key] = value
+            
+            def get_ai_config(self):
+                return {
+                    'api_key': self.get('openai_api_key'),
+                    'model': self.get('ai_model'),
+                    'temperature': self.get('ai_temperature')
+                }
     CORE_MODULES_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: Some core modules not available: {e}")
@@ -45,7 +68,10 @@ except ImportError as e:
     
     # Fallback imports for testing
     class DocumentParser:
-        def parse_document(self, path): 
+        def __init__(self, verbose=True):
+            self.verbose = verbose  # 添加调试输出控制
+        
+        def parse_document(self, path):
             return f"测试内容来自: {Path(path).name}"
     
     class AIProcessor:
@@ -91,7 +117,30 @@ except ImportError as e:
     
     class ConfigManager:
         def __init__(self):
-            pass
+            self.settings = {
+                'output_dir': 'profiles',
+                'template_dir': 'templates', 
+                'openai_api_key': None,
+                'ai_model': 'gpt-4',
+                'ai_temperature': 0.3,
+                'keep_versions': 5,
+                'generate_all_formats': True,
+                'default_theme': 'professional',
+                'log_level': 'INFO'
+            }
+        
+        def get(self, key: str, default=None):
+            return self.settings.get(key, default)
+        
+        def set(self, key: str, value):
+            self.settings[key] = value
+        
+        def get_ai_config(self):
+            return {
+                'api_key': self.get('openai_api_key'),
+                'model': self.get('ai_model'),
+                'temperature': self.get('ai_temperature')
+            }
     
     def get_temp_dir(): 
         return Path(tempfile.gettempdir())
@@ -139,10 +188,52 @@ class EasyCVGradioApp:
         create_safe_directory(self.temp_dir)
         
         # Initialize components
-        self.document_parser = DocumentParser()
-        self.ai_processor = AIProcessor(self.config_manager)
+        self.document_parser = DocumentParser(verbose=True)
+        
+        # Initialize AI processor with proper configuration
+        try:
+            # Try to get API key from config or environment
+            api_key = None
+            if hasattr(self.config_manager, 'get_ai_config'):
+                ai_config = self.config_manager.get_ai_config()
+                api_key = ai_config.get('openai_api_key') if ai_config else None
+            
+            # Fallback to environment variable
+            if not api_key:
+                import os
+                api_key = os.getenv('OPENAI_API_KEY')
+            
+            if api_key:
+                self.ai_processor = AIProcessor(api_key=api_key)
+                print("✅ 成功初始化AI处理器（使用OpenAI API）")
+            else:
+                print("⚠️  未找到OpenAI API密钥，使用测试AI处理器")
+                # Use fallback AIProcessor from the import failure section
+                raise ImportError("No API key available")
+                
+        except Exception as e:
+            print(f"⚠️  AI处理器初始化失败: {e}")
+            print("🔄 使用测试AI处理器...")
+            # Use the fallback AIProcessor class defined above
+            class TestAIProcessor:
+                def __init__(self, config): 
+                    pass
+                def generate_resume_content(self, **kwargs): 
+                    return {
+                        "name": "测试用户",
+                        "contact": "email: test@example.com\n电话: 123-456-7890",
+                        "summary": "这是一个测试生成的个人简介。",
+                        "experience": "测试工作经验内容。",
+                        "education": "测试教育背景。",
+                        "skills": "Python, JavaScript, 机器学习",
+                        "projects": "测试项目经验。",
+                        "certifications": "相关认证证书",
+                        "achievements": "主要成就奖项"
+                    }
+            self.ai_processor = TestAIProcessor(self.config_manager)
+        
         self.template_engine = TemplateEngine()
-        self.output_generator = OutputGenerator(self.config_manager)
+        self.output_generator = OutputGenerator(self.config_manager.get('output_dir', 'profiles'))
         self.file_utils = FileUtils()
         self.version_manager = VersionManager()
         
@@ -166,6 +257,9 @@ class EasyCVGradioApp:
             all_content = []
             processed_files = []
             
+            # Store file info for later saving
+            self.uploaded_files_info = []
+            
             for file in files:
                 if file is None:
                     continue
@@ -173,11 +267,31 @@ class EasyCVGradioApp:
                 # Get file path
                 file_path = Path(file.name)
                 
-                # Parse document
+                # Store file information for later saving
+                file_info = {
+                    'original_path': str(file_path),
+                    'name': file_path.name,
+                    'size': file_path.stat().st_size if file_path.exists() else 0,
+                    'extension': file_path.suffix.lower()
+                }
+                self.uploaded_files_info.append(file_info)
+                
+                # Parse document with detailed console output
+                print(f"\n🔍 处理上传文件: {file_path.name}")
                 content = self.document_parser.parse_document(str(file_path))
+                
                 if content.strip():
                     all_content.append(f"=== {file_path.name} ===\n{content}\n")
                     processed_files.append(file_path.name)
+                    
+                    # 在控制台显示提取的完整内容
+                    print(f"\n📝 从 {file_path.name} 提取的完整内容:")
+                    print("=" * 80)
+                    print(content)
+                    print("=" * 80)
+                    print(f"✅ 文件 {file_path.name} 处理完成\n")
+                else:
+                    print(f"⚠️  警告: 从 {file_path.name} 未提取到任何内容\n")
                     
             if not all_content:
                 return "❌ 无法从上传的文件中提取内容", ""
@@ -189,6 +303,82 @@ class EasyCVGradioApp:
             
         except Exception as e:
             return f"❌ 处理文件时出错: {str(e)}", ""
+    
+    def show_extracted_content(self, files: List[Any]) -> str:
+        """
+        显示从上传文件中提取的详细内容
+        
+        Args:
+            files: List of uploaded file objects from Gradio
+            
+        Returns:
+            Detailed extracted content for display
+        """
+        if not files:
+            return "❌ 请先上传文件"
+            
+        try:
+            all_details = []
+            
+            for file in files:
+                if file is None:
+                    continue
+                    
+                file_path = Path(file.name)
+                
+                # 创建详细解析器（启用调试模式）
+                detail_parser = DocumentParser(verbose=False)  # 不在这里输出控制台信息
+                
+                print(f"\n🔍 详细解析文件: {file_path.name}")
+                content = detail_parser.extract_text_from_file(str(file_path))
+                
+                if content.strip():
+                    file_detail = f"""
+=== 📄 文件: {file_path.name} ===
+📁 路径: {file_path}
+📦 大小: {file_path.stat().st_size if file_path.exists() else 0} bytes
+🔧 格式: {file_path.suffix.lower()}
+📊 字符数: {len(content)}
+📄 行数: {len(content.splitlines())}
+📋 非空行数: {len([line for line in content.splitlines() if line.strip()])}
+
+📝 完整内容:
+{'-' * 80}
+{content}
+{'-' * 80}
+
+"""
+                    all_details.append(file_detail)
+                    
+                    # 在控制台也显示完整内容
+                    print(f"📝 从 {file_path.name} 提取的详细内容:")
+                    print("=" * 100)
+                    print(content)
+                    print("=" * 100)
+                    print(f"✅ 文件 {file_path.name} 详细解析完成\n")
+                else:
+                    file_detail = f"""
+=== ⚠️  文件: {file_path.name} ===
+❌ 状态: 未能提取到内容
+📁 路径: {file_path}
+📦 大小: {file_path.stat().st_size if file_path.exists() else 0} bytes
+🔧 格式: {file_path.suffix.lower()}
+
+"""
+                    all_details.append(file_detail)
+                    print(f"⚠️  警告: 从 {file_path.name} 未提取到任何内容")
+                    
+            if all_details:
+                result = "\n".join(all_details)
+                print(f"\n🎉 所有文件详细解析完成！共处理 {len(all_details)} 个文件")
+                return result
+            else:
+                return "❌ 未能从任何文件中提取到内容"
+                
+        except Exception as e:
+            error_msg = f"❌ 显示提取内容时出错: {str(e)}"
+            print(error_msg)
+            return error_msg
     
     def generate_resume(self, 
                        profile_name: str,
@@ -214,14 +404,22 @@ class EasyCVGradioApp:
             Tuple of (status_message, markdown_path, word_path, html_path)
         """
         try:
+            print(f"\n🚀 开始生成简历...")
+            print(f"📝 档案名称: {profile_name}")
+            print(f"🎯 目标语言: {language}")
+            print(f"📊 输入参数验证:")
+            print(f"  - 档案名称: {'✅' if profile_name.strip() else '❌'}")
+            print(f"  - 职位描述: {'✅' if job_description.strip() else '❌'}")  
+            print(f"  - 提取内容: {'✅' if extracted_content.strip() else '❌'}")
+            
             if not profile_name.strip():
-                return "❌ 请输入个人档案名称", "", "", ""
+                return "❌ 请输入个人档案名称", None, None, None
                 
             if not job_description.strip():
-                return "❌ 请输入工作描述", "", "", ""
+                return "❌ 请输入工作描述", None, None, None
                 
             if not extracted_content.strip():
-                return "❌ 请先上传并处理文档", "", "", ""
+                return "❌ 请先上传并处理文档", None, None, None
             
             # Clean profile name
             safe_profile_name = get_valid_filename(profile_name.strip())
@@ -244,6 +442,11 @@ class EasyCVGradioApp:
                     print(f"Warning: Could not process style reference: {e}")
             
             # Generate resume content using AI
+            print(f"🧠 开始AI内容生成...")
+            print(f"🔍 提取内容长度: {len(extracted_content)} 字符")
+            print(f"🔍 职位描述长度: {len(job_description)} 字符")
+            print(f"🔍 目标语言: {language}")
+            
             resume_data = self.ai_processor.generate_resume_content(
                 experience_docs=extracted_content,
                 job_description=job_description,
@@ -251,18 +454,26 @@ class EasyCVGradioApp:
                 language=language
             )
             
+            print(f"✅ AI生成的简历数据键: {list(resume_data.keys()) if resume_data else 'None'}")
+            
             # Apply template
             if template_content.strip():
                 try:
+                    print(f"📝 应用自定义模板...")
                     final_content = self.template_engine.apply_template(
                         template_content, 
                         resume_data
                     )
+                    print(f"✅ 模板应用成功，最终内容长度: {len(final_content)} 字符")
                 except Exception as e:
                     print(f"Warning: Template application failed: {e}")
+                    print(f"🔄 回退到默认格式...")
                     final_content = self._format_resume_data(resume_data)
             else:
+                print(f"📝 使用默认格式（无自定义模板）...")
                 final_content = self._format_resume_data(resume_data)
+                
+            print(f"📄 最终简历内容预览（前200字符）: {final_content[:200]}...")
             
             # Generate outputs
             output_files = {}
@@ -270,36 +481,100 @@ class EasyCVGradioApp:
             if not output_formats:
                 output_formats = ['markdown', 'word', 'html']
             
+            # 修复格式不匹配问题：将界面格式转换为内部格式
+            format_mapping = {
+                'Markdown': 'markdown',
+                'Word': 'word', 
+                'Website': 'html'
+            }
+            
+            # 转换格式并添加调试输出
+            normalized_formats = []
+            for fmt in output_formats:
+                if fmt in format_mapping:
+                    normalized_formats.append(format_mapping[fmt])
+                else:
+                    normalized_formats.append(fmt.lower())
+            
+            output_formats = normalized_formats
+            print(f"🔍 标准化后的输出格式: {output_formats}")
+            
             # Generate markdown
             if 'markdown' in output_formats:
                 md_path = output_dir / f"{safe_profile_name}.v{version}.md"
-                with open(md_path, 'w', encoding='utf-8') as f:
-                    f.write(final_content)
-                output_files['markdown'] = str(md_path)
+                print(f"📄 生成Markdown文件: {md_path}")
+                try:
+                    with open(md_path, 'w', encoding='utf-8') as f:
+                        f.write(final_content)
+                    print(f"✅ Markdown文件写入成功，文件大小: {md_path.stat().st_size} 字节")
+                    output_files['markdown'] = str(md_path)
+                except Exception as e:
+                    print(f"❌ Markdown文件写入失败: {e}")
+            else:
+                print(f"⏭️  跳过Markdown生成（不在输出格式中）")
             
             # Generate Word document
             if 'word' in output_formats:
                 word_path = output_dir / f"{safe_profile_name}.v{version}.docx"
+                print(f"📋 生成Word文档: {word_path}")
                 try:
                     self.output_generator.generate_word(final_content, str(word_path))
-                    output_files['word'] = str(word_path)
+                    if word_path.exists():
+                        print(f"✅ Word文档生成成功，文件大小: {word_path.stat().st_size} 字节")
+                        output_files['word'] = str(word_path)
+                    else:
+                        print(f"❌ Word文档生成失败：文件不存在")
                 except Exception as e:
-                    print(f"Warning: Word generation failed: {e}")
-                    output_files['word'] = ""
+                    print(f"❌ Word generation failed: {e}")
+                    # 不设置word键，这样get()会返回默认值
+            else:
+                print(f"⏭️  跳过Word生成（不在输出格式中）")
             
             # Generate HTML website
             if 'html' in output_formats:
                 html_path = output_dir / f"{safe_profile_name}.v{version}.html"
+                print(f"🌐 生成HTML网站: {html_path}")
                 try:
                     self.output_generator.generate_website(
                         final_content, 
                         str(output_dir),
                         f"{safe_profile_name}.v{version}"
                     )
-                    output_files['html'] = str(html_path)
+                    if html_path.exists():
+                        print(f"✅ HTML网站生成成功，文件大小: {html_path.stat().st_size} 字节")
+                        output_files['html'] = str(html_path)
+                    else:
+                        print(f"❌ HTML网站生成失败：文件不存在")
                 except Exception as e:
-                    print(f"Warning: HTML generation failed: {e}")
-                    output_files['html'] = ""
+                    print(f"❌ HTML generation failed: {e}")
+                    # 不设置html键，这样get()会返回默认值
+            else:
+                print(f"⏭️  跳过HTML生成（不在输出格式中）")
+            
+            # Save original documents if available
+            source_docs_info = []
+            if hasattr(self, 'uploaded_files_info') and self.uploaded_files_info:
+                source_docs_dir = output_dir / "source_documents"
+                create_safe_directory(source_docs_dir)
+                
+                for file_info in self.uploaded_files_info:
+                    original_path = Path(file_info['original_path'])
+                    if original_path.exists():
+                        # Copy original file to source_documents directory
+                        saved_filename = f"{safe_profile_name}_source_{file_info['name']}"
+                        saved_path = source_docs_dir / saved_filename
+                        
+                        try:
+                            import shutil
+                            shutil.copy2(str(original_path), str(saved_path))
+                            
+                            # Update file info with saved location
+                            file_info['saved_path'] = str(saved_path.relative_to(output_dir))
+                            file_info['saved_at'] = self.version_manager.get_timestamp()
+                            source_docs_info.append(file_info)
+                            
+                        except Exception as e:
+                            print(f"Warning: Could not save source document {file_info['name']}: {e}")
             
             # Save metadata
             metadata = {
@@ -309,24 +584,54 @@ class EasyCVGradioApp:
                 'job_description': job_description,
                 'output_formats': output_formats,
                 'platform': self.platform_info,
-                'files_generated': output_files
+                'files_generated': output_files,
+                'source_documents': source_docs_info,  # 新增：源文档信息
+                'total_source_files': len(source_docs_info)  # 新增：源文件数量
             }
             
             metadata_path = output_dir / "metadata.json"
             with open(metadata_path, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2, ensure_ascii=False)
             
+            print(f"\n📁 生成的文件汇总:")
+            for format_name, file_path in output_files.items():
+                if file_path and Path(file_path).exists():
+                    print(f"  ✅ {format_name}: {file_path}")
+                else:
+                    print(f"  ❌ {format_name}: 未生成")
+            
             success_msg = f"✅ 简历生成成功！\n档案: {safe_profile_name}\n版本: v{version}\n输出目录: {output_dir}"
+            
+            # 确保文件路径存在，不存在则返回None而不是空字符串
+            markdown_path = output_files.get('markdown', '')
+            word_path = output_files.get('word', '')
+            html_path = output_files.get('html', '')
+            
+            # 验证文件是否真实存在，如果不存在则返回None
+            if markdown_path and not Path(markdown_path).exists():
+                markdown_path = None
+            elif not markdown_path:
+                markdown_path = None
+                
+            if word_path and not Path(word_path).exists():
+                word_path = None
+            elif not word_path:
+                word_path = None
+                
+            if html_path and not Path(html_path).exists():
+                html_path = None
+            elif not html_path:
+                html_path = None
             
             return (
                 success_msg,
-                output_files.get('markdown', ''),
-                output_files.get('word', ''),
-                output_files.get('html', '')
+                markdown_path,
+                word_path,
+                html_path
             )
             
         except Exception as e:
-            return f"❌ 生成简历时出错: {str(e)}", "", "", ""
+            return f"❌ 生成简历时出错: {str(e)}", None, None, None
     
     def _format_resume_data(self, resume_data: Dict[str, Any]) -> str:
         """
@@ -509,7 +814,10 @@ class EasyCVGradioApp:
                                 elem_classes="file-upload"
                             )
                             
-                            file_process_btn = gr.Button("🔍 处理上传的文件", variant="secondary")
+                            with gr.Row():
+                                file_process_btn = gr.Button("🔍 处理上传的文件", variant="secondary")
+                                show_content_btn = gr.Button("📄 显示提取内容", variant="primary")
+                            
                             file_status = gr.Textbox(label="文件处理状态", interactive=False)
                             
                         with gr.Column():
@@ -531,6 +839,15 @@ class EasyCVGradioApp:
                         lines=10,
                         interactive=False
                     )
+                    
+                    # 详细内容显示区域
+                    with gr.Accordion("📄 详细提取内容", open=False):
+                        detailed_content = gr.Textbox(
+                            label="完整提取内容（包含详细格式信息）",
+                            lines=20,
+                            interactive=False,
+                            max_lines=30
+                        )
                     
                     generate_btn = gr.Button("🚀 生成简历", variant="primary", size="lg")
                     
@@ -619,6 +936,12 @@ class EasyCVGradioApp:
                 outputs=[file_status, extracted_content]
             )
             
+            show_content_btn.click(
+                fn=self.show_extracted_content,
+                inputs=[uploaded_files],
+                outputs=[detailed_content]
+            )
+            
             generate_btn.click(
                 fn=self.generate_resume_with_language,
                 inputs=[
@@ -657,7 +980,7 @@ class EasyCVGradioApp:
         # Default launch settings
         launch_args = {
             'server_name': '0.0.0.0',
-            'server_port': 7860,
+            'server_port': None,  # 让Gradio自动选择可用端口
             'share': False,
             'debug': False,
             **kwargs
@@ -673,7 +996,7 @@ class EasyCVGradioApp:
 - Python版本: {sys.version.split()[0]}
 - 核心模块: {'✅ 正常' if CORE_MODULES_AVAILABLE else '⚠️  部分缺失'}
 
-访问地址: http://localhost:{launch_args['server_port']}
+🔍 正在自动寻找可用端口...
         """)
         
         interface.launch(**launch_args)

@@ -23,8 +23,9 @@ class DocumentParser:
     
     SUPPORTED_FORMATS = {'.pdf', '.docx', '.doc', '.md', '.txt'}
     
-    def __init__(self):
+    def __init__(self, verbose=True):
         self.logger = logging.getLogger(__name__)
+        self.verbose = verbose  # 添加调试输出控制
         
     def parse_documents(self, file_paths: List[str]) -> Dict[str, str]:
         """
@@ -49,6 +50,50 @@ class DocumentParser:
                 
         return results
     
+    def parse_document(self, file_path: str) -> str:
+        """
+        Parse a single document and return extracted text.
+        
+        Args:
+            file_path: Path to the document file
+            
+        Returns:
+            Extracted text content
+        """
+        return self.extract_text_from_file(file_path)
+    
+    def debug_parse_document(self, file_path: str) -> str:
+        """
+        Parse document with detailed debug output and full content display.
+        
+        Args:
+            file_path: Path to the document file
+            
+        Returns:
+            Extracted text content
+        """
+        print(f"\n🔍 详细解析模式 - 开始处理文档")
+        print("=" * 60)
+        
+        content = self.extract_text_from_file(file_path)
+        
+        if content.strip():
+            print(f"\n📝 完整提取内容:")
+            print("=" * 60)
+            print(content)
+            print("=" * 60)
+            print(f"📊 统计信息:")
+            print(f"  - 总字符数: {len(content)}")
+            print(f"  - 总行数: {len(content.splitlines())}")
+            print(f"  - 非空行数: {len([line for line in content.splitlines() if line.strip()])}")
+        else:
+            print("❌ 未提取到任何内容")
+        
+        print("\n🔍 详细解析完成")
+        print("=" * 60)
+        
+        return content
+    
     def extract_text_from_file(self, file_path: str) -> str:
         """
         Extract text from a single file based on its extension.
@@ -67,18 +112,38 @@ class DocumentParser:
             raise FileNotFoundError(f"File not found: {file_path}")
             
         suffix = Path(file_path).suffix.lower()
+        file_name = Path(file_path).name
+        
+        if self.verbose:
+            print(f"\n📄 开始解析文档: {file_name}")
+            print(f"📁 文件路径: {file_path}")
+            print(f"🔧 文件格式: {suffix}")
         
         if suffix not in self.SUPPORTED_FORMATS:
             raise ValueError(f"Unsupported file format: {suffix}")
             
+        extracted_content = ""
         if suffix == ".pdf":
-            return self._extract_from_pdf(file_path)
+            extracted_content = self._extract_from_pdf(file_path)
         elif suffix in [".docx", ".doc"]:
-            return self._extract_from_docx(file_path)
+            extracted_content = self._extract_from_docx(file_path)
         elif suffix in [".md", ".txt"]:
-            return self._extract_from_text(file_path)
+            extracted_content = self._extract_from_text(file_path)
         else:
             raise ValueError(f"Handler not implemented for format: {suffix}")
+        
+        if self.verbose:
+            print(f"✅ 文档解析完成: {file_name}")
+            print(f"📊 提取内容长度: {len(extracted_content)} 字符")
+            if extracted_content.strip():
+                print(f"📝 提取内容预览 (前200字符):")
+                print("-" * 50)
+                print(extracted_content[:200] + ("..." if len(extracted_content) > 200 else ""))
+                print("-" * 50)
+            else:
+                print("⚠️  警告: 未提取到任何内容")
+        
+        return extracted_content
     
     def _extract_from_pdf(self, file_path: str) -> str:
         """Extract text from PDF file."""
@@ -89,13 +154,33 @@ class DocumentParser:
             reader = PdfReader(file_path)
             text_parts = []
             
-            for page in reader.pages:
+            if self.verbose:
+                print(f"📖 PDF总页数: {len(reader.pages)}")
+            
+            for page_num, page in enumerate(reader.pages, 1):
                 page_text = page.extract_text()
                 if page_text:
                     text_parts.append(page_text)
+                    if self.verbose:
+                        print(f"📄 第{page_num}页: 提取了 {len(page_text)} 个字符")
+                        # 显示每页前50个字符
+                        preview = page_text.strip()[:50].replace('\n', ' ')
+                        print(f"   预览: {preview}{'...' if len(page_text) > 50 else ''}")
+                else:
+                    if self.verbose:
+                        print(f"📄 第{page_num}页: ⚠️  未提取到内容")
                     
-            return "\n".join(text_parts)
+            full_text = "\n".join(text_parts)
+            
+            if self.verbose:
+                print(f"✅ PDF解析完成，共提取 {len(full_text)} 个字符")
+                if len(text_parts) > 0:
+                    print(f"📊 有效页面: {len(text_parts)}/{len(reader.pages)}")
+                    
+            return full_text
         except Exception as e:
+            if self.verbose:
+                print(f"❌ PDF解析失败: {str(e)}")
             raise Exception(f"Error parsing PDF: {str(e)}")
     
     def _extract_from_docx(self, file_path: str) -> str:

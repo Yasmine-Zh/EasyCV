@@ -25,7 +25,7 @@ class EasyCVApp:
         self.logger = logging.getLogger(__name__)
         
         # Initialize components
-        self.document_parser = DocumentParser()
+        self.document_parser = DocumentParser(verbose=False)
         self.template_engine = TemplateEngine(config.get('template_dir'))
         self.output_generator = OutputGenerator(config.get('output_dir'))
         self.file_utils = FileUtils()
@@ -109,48 +109,51 @@ class EasyCVApp:
                 style_reference_content = style_reference
             
         # Initialize AI processor if needed
-        if hasattr(self, 'config') and self.config.get('openai_api_key'):
-            self.initialize_ai_processor()
-            
-            # Extract relevant experience using AI
-            self.logger.info("Extracting relevant experience with AI...")
-            extracted_info = self.ai_processor.extract_relevant_experience(
-                documents_text, jd_text, language
-            )
-            
-            # Generate profile content
-            self.logger.info("Generating profile content...")
-            profile_content = self.ai_processor.generate_profile_from_template(
-                template_content, extracted_info, profile_name, jd_text, language
-            )
-            
-            # Analyze style if reference provided
-            style_analysis = None
-            if style_reference and config.get('enable_style_analysis'):
-                self.logger.info("Analyzing style reference...")
-                style_analysis = self.ai_processor.analyze_resume_style(style_reference_content)
-            
-            # Prepare profile data
-            profile_data = {
-                'content': profile_content,
-                'profile_name': profile_name,
-                'source_documents': documents,
-                'job_description': jd_text,
-                'template_path': template_path,
-                'style_reference': style_reference
-            }
-            
-            # Generate all output formats
-            self.logger.info("Generating output files...")
-            output_paths = self.output_generator.generate_complete_profile(
-                profile_data, profile_name, style_analysis
-            )
-            
-            output_dir = Path(output_paths['markdown']).parent
-            self.logger.info(f"Profile generation completed successfully: {output_dir}")
-            
-            return str(output_dir)
-            
+        try:
+            if hasattr(self, 'config') and self.config.get('openai_api_key'):
+                self.initialize_ai_processor()
+                
+                # Extract relevant experience using AI
+                self.logger.info("Extracting relevant experience with AI...")
+                extracted_info = self.ai_processor.extract_relevant_experience(
+                    documents_text, jd_text, language
+                )
+                
+                # Generate profile content
+                self.logger.info("Generating profile content...")
+                profile_content = self.ai_processor.generate_profile_from_template(
+                    template_content, extracted_info, profile_name, jd_text, language
+                )
+                
+                # Analyze style if reference provided
+                style_analysis = None
+                if style_reference and config.get('enable_style_analysis'):
+                    self.logger.info("Analyzing style reference...")
+                    style_analysis = self.ai_processor.analyze_resume_style(style_reference_content)
+                
+                # Prepare profile data
+                profile_data = {
+                    'content': profile_content,
+                    'profile_name': profile_name,
+                    'source_documents': documents,
+                    'job_description': jd_text,
+                    'template_path': template_path,
+                    'style_reference': style_reference
+                }
+                
+                # Generate all output formats
+                self.logger.info("Generating output files...")
+                output_paths = self.output_generator.generate_complete_profile(
+                    profile_data, profile_name, style_analysis
+                )
+                
+                output_dir = Path(output_paths['markdown']).parent
+                self.logger.info(f"Profile generation completed successfully: {output_dir}")
+                
+                return str(output_dir)
+            else:
+                raise ValueError("OpenAI API key not configured")
+                
         except Exception as e:
             self.logger.error(f"Error generating profile: {str(e)}")
             raise
