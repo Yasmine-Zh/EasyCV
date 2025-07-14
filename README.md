@@ -11,7 +11,7 @@ EasyCV is an intelligent resume generation tool that uses AI to create professio
 - **Version Management**: Automatic versioning and cleanup of old resume versions
 - **GitHub Pages Ready**: Generates websites ready for deployment to GitHub Pages
 - **Template System**: Flexible template system for different resume layouts
-- **Web Interface**: User-friendly Gradio-based web interface for easy file upload and resume generation
+- **Web Interface**: User-friendly Gradio-based web interface for easy file upload and resume generation (双版本支持：标准版和兼容版)
 - **Cross-Platform**: Compatible with Windows, macOS, and Linux systems
 - **Command Line Interface**: Easy-to-use CLI for batch processing and automation
 
@@ -34,11 +34,15 @@ EasyCV/
 │   │   ├── word_generator.py     # Word document output
 │   │   └── website_generator.py  # HTML/website output
 │   ├── web/                     # Web interface
-│   │   └── gradio_app.py        # Gradio-based web UI
+│   │   ├── gradio_app.py        # Gradio-based web UI (标准版本)
+│   │   ├── gradio_app_simple.py # Gradio-based web UI (简化版本)
+│   │   └── gradio_app_minimal.py # Gradio-based web UI (超简版本)
 │   ├── templates/               # Resume templates
 │   ├── static/                  # Static assets for websites
 │   ├── main.py                  # Main CLI application
-│   ├── launch_ui.py            # Web interface launcher
+│   ├── launch_ui.py            # Web interface launcher (标准版本)
+│   ├── launch_ui_simple.py     # Web interface launcher (简化版本)
+│   ├── launch_ui_minimal.py    # Web interface launcher (超简版本)
 │   ├── config.py               # Configuration management
 │   └── requirements.txt        # Python dependencies
 ├── templates/                   # Global templates
@@ -90,21 +94,65 @@ The web interface provides an intuitive, point-and-click experience for resume g
 
 #### Quick Start
 
-1. **Launch the Web Interface**:
-   ```bash
-   cd v2
-   python launch_ui.py
-   ```
+EasyCV provides **three versions** of the web interface to accommodate different environments and compatibility needs:
 
-2. **Access in Browser**: 
-   - The interface will automatically open in your default browser
-   - Or visit: `http://localhost:7860`
+**🚀 Standard Version (Full Features)**
+```bash
+cd v2
+python launch_ui.py
+```
+- 完整功能的Gradio界面
+- 支持Python 3.9+
+- 包含所有高级特性和组件
+- 可能遇到Gradio兼容性问题
 
-3. **Upload and Generate**:
-   - Upload your existing resume/documents (PDF, DOCX, Markdown, TXT)
-   - Enter the target job description
-   - Click "Generate Resume"
-   - Download your professionally formatted resume
+**🔧 Simple Version (Balanced)**
+```bash
+cd v2
+python launch_ui_simple.py
+```
+- 简化的Gradio界面，兼容性更好
+- 支持Python 3.8+
+- 基础功能完整，适合旧版Python环境
+- 仍可能遇到JSON schema错误
+
+**⚡ Minimal Version (Maximum Compatibility)**
+```bash
+cd v2
+python launch_ui_minimal.py
+```
+- 超级简化界面，使用最基本组件
+- 支持Python 3.8+
+- 功能有限但兼容性最好
+- 专为解决Gradio兼容性问题设计
+
+#### 版本选择指南
+
+| 特性 | 标准版本 | 简化版本 | 超简版本 |
+|------|----------|----------|----------|
+| Python要求 | 3.9+ | 3.8+ | 3.8+ |
+| 功能完整度 | 完整 | 基础 | 有限 |
+| 界面复杂度 | 完整功能 | 简化界面 | 最简界面 |
+| 兼容性 | 一般 | 良好 | 最佳 |
+| 推荐场景 | 最新环境 | 一般环境 | 兼容性问题 |
+
+**推荐使用顺序**: 标准版本 → 简化版本 → 超简版本
+
+**如果遇到`TypeError: argument of type 'bool' is not iterable`等Gradio错误，请使用超简版本。**
+
+#### 使用步骤
+
+1. **选择并启动版本**：根据上述指南选择合适的启动脚本
+
+2. **访问浏览器界面**: 
+   - 界面将自动在默认浏览器中打开
+   - 或手动访问: `http://localhost:7860`
+
+3. **上传并生成简历**:
+   - 上传现有简历/文档 (PDF, DOCX, Markdown, TXT)
+   - 输入目标职位描述
+   - 点击"生成简历"
+   - 下载专业格式化的简历
 
 #### Web Interface Features
 
@@ -188,6 +236,42 @@ python main.py generate \
   --config custom_config.txt \
   --output-dir custom_output
 ```
+
+### 🌐 语言支持 / Language Support
+
+EasyCV supports generating resumes in multiple languages:
+
+#### Web Interface
+- **English**: 完全的英文简历生成，使用专业的美式英语术语
+- **Chinese**: 完全的中文简历生成，使用专业的中文术语
+- **Bilingual**: 双语简历，同时包含英文和中文内容
+
+#### Command Line Interface
+```bash
+# Generate English resume (default)
+python main.py generate --profile john_doe --docs cv.pdf --jd job_desc.txt --template templates/English_Resume_Template.md --language english
+
+# Generate Chinese resume
+python main.py generate --profile 张三 --docs cv.pdf --jd job_desc.txt --template templates/Personal_Profile_Template.md --language chinese
+
+# Generate bilingual resume
+python main.py generate --profile john_doe --docs cv.pdf --jd job_desc.txt --template templates/English_Resume_Template.md --language bilingual
+```
+
+#### 确保英文简历质量 / Ensuring English Resume Quality
+
+1. **使用英文模板**: 
+   - Web界面: 选择"English"语言选项
+   - CLI: 使用 `--language english` 参数
+
+2. **AI指令优化**: 系统会自动向AI发送明确的英文生成指令
+   - 强制使用美式英语术语
+   - 确保所有输出内容都是英文
+   - 优化简历的专业性和可读性
+
+3. **模板选择**:
+   - 使用专门的英文模板: `templates/English_Resume_Template.md`
+   - 或自定义英文格式的模板
 
 ## Configuration Options
 
@@ -341,10 +425,21 @@ mypy .
 
 4. **Web Interface Issues**
    - **Interface won't start**: Check if Gradio is installed (`pip install gradio>=4.0.0`)
+   - **JSON Schema错误 (`bool is not iterable`)**: 使用超简版本 `python launch_ui_minimal.py`
+   - **Gradio组件兼容性错误**: 切换到简化版本 `python launch_ui_simple.py`
+   - **Python 3.8兼容性问题**: 使用简化版本或超简版本
+   - **复杂界面组件报错**: 标准版本需要Python 3.9+，否则使用其他版本
    - **File upload fails**: Ensure file size is under 100MB and format is supported
    - **Cross-platform path errors**: The tool automatically handles Windows/macOS paths
    - **Port already in use**: Try changing the port: `python launch_ui.py --server-port 7861`
    - **Browser doesn't open**: Manually visit `http://localhost:7860`
+   
+   **版本选择建议**:
+   - 如果遇到`TypeError: argument of type 'bool' is not iterable`，使用超简版本
+   - 如果遇到任何Gradio相关错误，优先尝试简化版本
+   - 标准版本适合Python 3.9+环境且无兼容性问题
+   - 简化版本提供更好的向下兼容性
+   - 超简版本专为解决深层Gradio兼容性问题设计
 
 ### Debug Mode
 

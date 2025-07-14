@@ -1,0 +1,23 @@
+feat: 添加Gradio Web界面和多语言简历生成支持
+
+- ✨ 新增完整的Gradio Web用户界面，支持文件拖拽上传
+- 🌍 实现英文、中文、双语简历生成功能
+- 🔧 修复Gradio 4.x JSON schema bug，降级至3.50.2稳定版本
+- 🛠️ 添加跨平台路径处理工具，完善macOS/Windows兼容性
+- 📱 提供三个兼容性版本：标准版、简化版、最小版
+- 🎯 CLI增加--language参数，保持向后兼容
+- 📁 新增英文模板和使用示例，完善文档
+
+**新增文件:**
+- Web界面: gradio_app*.py, launch_ui*.py
+- 工具模块: utils/path_utils.py
+- 模板文档: templates/English_Resume_Template.md
+
+**技术改进:**
+- 解决Gradio兼容性问题
+- 增强AI处理器多语言支持  
+- 优化项目结构和错误处理
+
+**使用方式:**
+Web界面: `python launch_ui_minimal.py`
+CLI增强: `python main.py --language english --input resume.pdf` 

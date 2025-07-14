@@ -8,24 +8,119 @@ import os
 import sys
 import tempfile
 import shutil
+import json
 from pathlib import Path
 from typing import List, Optional, Tuple, Dict, Any
-import json
 
-# Add parent directory to path for imports
-sys.path.append(str(Path(__file__).parent.parent))
+# Ensure the parent directory is in the Python path
+current_dir = Path(__file__).parent
+parent_dir = current_dir.parent
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
 
-from core.document_parser import DocumentParser
-from core.ai_processor import AIProcessor
-from core.template_engine import TemplateEngine
-from core.output_generator import OutputGenerator
-from utils.path_utils import (
-    normalize_path, safe_join, create_safe_directory, 
-    get_valid_filename, get_temp_dir, get_platform_info
-)
-from utils.file_utils import FileUtils
-from utils.version_manager import VersionManager
-from config import ConfigManager
+# Import modules with error handling
+try:
+    from core.document_parser import DocumentParser
+    from core.ai_processor import AIProcessor
+    from core.template_engine import TemplateEngine
+    from core.output_generator import OutputGenerator
+    from utils.file_utils import FileUtils
+    from utils.version_manager import VersionManager
+    from utils.path_utils import (
+        normalize_path, safe_join, create_safe_directory, 
+        get_valid_filename, get_temp_dir, get_platform_info
+    )
+    try:
+        from config import ConfigManager
+    except ImportError:
+        # Fallback ConfigManager for testing
+        class ConfigManager:
+            def __init__(self):
+                pass
+    CORE_MODULES_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Some core modules not available: {e}")
+    print("Running in limited mode - some features may not work.")
+    CORE_MODULES_AVAILABLE = False
+    
+    # Fallback imports for testing
+    class DocumentParser:
+        def parse_document(self, path): 
+            return f"测试内容来自: {Path(path).name}"
+    
+    class AIProcessor:
+        def __init__(self, config): 
+            pass
+        def generate_resume_content(self, **kwargs): 
+            return {
+                "name": "测试用户",
+                "contact": "email: test@example.com\n电话: 123-456-7890",
+                "summary": "这是一个测试生成的个人简介。",
+                "experience": "测试工作经验内容。",
+                "education": "测试教育背景。",
+                "skills": "Python, JavaScript, 机器学习",
+                "projects": "测试项目经验。"
+            }
+    
+    class TemplateEngine:
+        def apply_template(self, template, data): 
+            # 简单的模板替换
+            result = template
+            for key, value in data.items():
+                result = result.replace(f"{{{{{key}}}}}", str(value))
+            return result
+    
+    class OutputGenerator:
+        def __init__(self, config): 
+            pass
+        def generate_word(self, content, path): 
+            print(f"Word文档已保存到: {path}")
+        def generate_website(self, content, dir_path, name): 
+            print(f"网站已生成到: {dir_path}")
+    
+    class FileUtils:
+        pass
+    
+    class VersionManager:
+        def generate_version(self): 
+            from datetime import datetime
+            return datetime.now().strftime('%Y%m%d%H%M')
+        def get_timestamp(self): 
+            from datetime import datetime
+            return datetime.now().strftime('%Y-%m-%d %H:%M')
+    
+    class ConfigManager:
+        def __init__(self):
+            pass
+    
+    def get_temp_dir(): 
+        return Path(tempfile.gettempdir())
+    
+    def get_platform_info(): 
+        import platform
+        return {
+            "system": platform.system().lower(),
+            "is_windows": platform.system() == "Windows",
+            "is_macos": platform.system() == "Darwin",
+            "path_separator": os.sep
+        }
+    
+    def normalize_path(p): 
+        return Path(p).resolve()
+    
+    def safe_join(*args): 
+        return Path(os.path.join(*[str(a) for a in args]))
+    
+    def create_safe_directory(p): 
+        path = Path(p)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    
+    def get_valid_filename(name): 
+        import re
+        # 移除不安全字符
+        safe_name = re.sub(r'[<>:"/\\|?*]', '_', name)
+        return safe_name.strip(' .')
 
 
 class EasyCVGradioApp:
@@ -35,6 +130,10 @@ class EasyCVGradioApp:
     
     def __init__(self):
         """Initialize the Gradio application"""
+        if not CORE_MODULES_AVAILABLE:
+            print("⚠️  Running in limited mode - some features may not work properly")
+            print("💡 Please ensure all core modules are available for full functionality")
+            
         self.config_manager = ConfigManager()
         self.temp_dir = get_temp_dir() / "easycv_temp"
         create_safe_directory(self.temp_dir)
@@ -97,7 +196,8 @@ class EasyCVGradioApp:
                        extracted_content: str,
                        template_content: str,
                        style_reference: Optional[Any] = None,
-                       output_formats: List[str] = None) -> Tuple[str, str, str, str]:
+                       output_formats: List[str] = None,
+                       language: str = "english") -> Tuple[str, str, str, str]:
         """
         Generate resume in multiple formats
         
@@ -108,6 +208,7 @@ class EasyCVGradioApp:
             template_content: Resume template content
             style_reference: Optional style reference file
             output_formats: List of desired output formats
+            language: Target language for the resume (default: "english")
             
         Returns:
             Tuple of (status_message, markdown_path, word_path, html_path)
@@ -126,7 +227,7 @@ class EasyCVGradioApp:
             safe_profile_name = get_valid_filename(profile_name.strip())
             
             # Create version
-            version = self.version_manager.create_version()
+            version = self.version_manager.generate_version()
             
             # Create output directory
             output_dir = create_safe_directory(
@@ -146,7 +247,8 @@ class EasyCVGradioApp:
             resume_data = self.ai_processor.generate_resume_content(
                 experience_docs=extracted_content,
                 job_description=job_description,
-                style_reference=style_content
+                style_reference=style_content,
+                language=language
             )
             
             # Apply template
@@ -358,6 +460,12 @@ class EasyCVGradioApp:
             **支持的文件格式:** PDF, DOCX, Markdown (.md), 纯文本 (.txt)
             """)
             
+            if not CORE_MODULES_AVAILABLE:
+                gr.Markdown("""
+                ⚠️ **警告**: 部分核心模块未正确加载，某些功能可能无法正常工作。
+                💡 请确保所有依赖已正确安装并检查环境设置。
+                """)
+            
             with gr.Tabs():
                 # Tab 1: Generate New Resume
                 with gr.Tab("🆕 生成新简历"):
@@ -365,25 +473,29 @@ class EasyCVGradioApp:
                         with gr.Column(scale=2):
                             gr.Markdown("### 📋 基本信息")
                             profile_name = gr.Textbox(
-                                label="个人档案名称",
-                                placeholder="例如: 张三_软件工程师",
-                                info="此名称将用于文件命名和组织"
+                                label="个人档案名称（用于文件命名和组织）",
+                                placeholder="例如: 张三_软件工程师"
                             )
                             
                             job_description = gr.Textbox(
-                                label="目标职位描述",
+                                label="目标职位描述（AI将根据此描述优化您的简历内容）",
                                 placeholder="粘贴完整的工作描述，或简要描述目标职位要求...",
-                                lines=5,
-                                info="AI将根据此描述优化您的简历内容"
+                                lines=5
                             )
                             
                         with gr.Column(scale=1):
                             gr.Markdown("### ⚙️ 生成选项")
+                            
+                            language_choice = gr.Radio(
+                                choices=["English", "Chinese", "Bilingual"],
+                                value="English",
+                                label="简历语言 / Resume Language"
+                            )
+                            
                             output_formats = gr.CheckboxGroup(
-                                choices=["markdown", "word", "html"],
-                                value=["markdown", "word", "html"],
-                                label="输出格式",
-                                info="选择需要生成的文件格式"
+                                choices=["Markdown", "Word", "Website"],
+                                value=["Markdown", "Word"],
+                                label="输出格式（选择需要生成的文件格式）"
                             )
                     
                     gr.Markdown("### 📁 文档上传")
@@ -404,23 +516,20 @@ class EasyCVGradioApp:
                             style_reference = gr.File(
                                 label="样式参考文档（可选）",
                                 file_count="single",
-                                file_types=[".pdf", ".docx", ".md", ".txt"],
-                                info="上传一个您喜欢的简历样式作为参考"
+                                file_types=[".pdf", ".docx", ".md", ".txt"]
                             )
                     
                     gr.Markdown("### 📝 模板设置")
                     template_content = gr.Textbox(
-                        label="简历模板",
-                        value=lambda: self.get_default_template(),
-                        lines=10,
-                        info="您可以修改此模板以自定义简历格式。使用 {{variable}} 语法插入AI生成的内容。"
+                        label="简历模板（可修改格式，使用 {{variable}} 语法插入AI生成的内容）",
+                        lines=15,
+                        value=self.get_default_template()
                     )
                     
                     extracted_content = gr.Textbox(
-                        label="提取的文档内容",
-                        lines=8,
-                        interactive=False,
-                        info="这里显示从上传文档中提取的内容，您可以查看但无需编辑"
+                        label="提取的文档内容（显示从上传文档中提取的内容）",
+                        lines=10,
+                        interactive=False
                     )
                     
                     generate_btn = gr.Button("🚀 生成简历", variant="primary", size="lg")
@@ -473,7 +582,7 @@ class EasyCVGradioApp:
                         interactive=False
                     )
                     
-                    gr.Markdown("""
+                    gr.Markdown(f"""
                     ### 📋 环境变量设置
                     
                     为了使用AI功能，您需要设置以下环境变量：
@@ -487,6 +596,11 @@ class EasyCVGradioApp:
                     export EASYCV_AI_MODEL="gpt-4"
                     export EASYCV_LOG_LEVEL="INFO"
                     ```
+                    
+                    ### 🔧 Python版本信息
+                    
+                    - Python版本: {sys.version}
+                    - 核心模块加载: {'✅ 正常' if CORE_MODULES_AVAILABLE else '❌ 部分失败'}
                     
                     ### 🔧 高级功能
                     
@@ -506,14 +620,15 @@ class EasyCVGradioApp:
             )
             
             generate_btn.click(
-                fn=self.generate_resume,
+                fn=self.generate_resume_with_language,
                 inputs=[
                     profile_name,
                     job_description, 
                     extracted_content,
                     template_content,
                     style_reference,
-                    output_formats
+                    output_formats,
+                    language_choice
                 ],
                 outputs=[
                     generation_status,
@@ -545,7 +660,6 @@ class EasyCVGradioApp:
             'server_port': 7860,
             'share': False,
             'debug': False,
-            'show_tips': True,
             **kwargs
         }
         
@@ -556,17 +670,70 @@ class EasyCVGradioApp:
 - 系统: {self.platform_info['system']}
 - Windows: {self.platform_info['is_windows']}
 - macOS: {self.platform_info['is_macos']}
+- Python版本: {sys.version.split()[0]}
+- 核心模块: {'✅ 正常' if CORE_MODULES_AVAILABLE else '⚠️  部分缺失'}
 
 访问地址: http://localhost:{launch_args['server_port']}
         """)
         
         interface.launch(**launch_args)
 
+    def convert_language_choice(self, choice: str) -> str:
+        """Convert UI language choice to internal language code"""
+        mapping = {
+            "English": "english",
+            "Chinese": "chinese", 
+            "Bilingual": "bilingual"
+        }
+        return mapping.get(choice, "english")
+    
+    def generate_resume_with_language(self, profile_name: str, job_description: str, 
+                                     extracted_content: str, template_content: str,
+                                     style_reference: Optional[Any], output_formats: List[str],
+                                     language_choice: str) -> Tuple[str, str, str, str]:
+        """Wrapper for generate_resume that handles language conversion"""
+        language = self.convert_language_choice(language_choice)
+        return self.generate_resume(
+            profile_name=profile_name,
+            job_description=job_description,
+            extracted_content=extracted_content,
+            template_content=template_content,
+            style_reference=style_reference,
+            output_formats=output_formats,
+            language=language
+        )
+
 
 def main():
     """Main entry point for the Gradio application"""
-    app = EasyCVGradioApp()
-    app.launch()
+    try:
+        app = EasyCVGradioApp()
+        app.launch()
+    except ImportError as e:
+        print(f"\n❌ 模块导入错误: {e}")
+        print("\n💡 解决方案:")
+        print("1. 确保在v2目录下运行: cd v2")
+        print("2. 安装所有依赖: pip install -r requirements.txt")
+        print("3. 检查所有核心模块是否存在")
+        print("4. 使用: python3 launch_ui.py")
+        
+        # 提供调试信息
+        current_dir = Path(__file__).parent.parent
+        print(f"\n🔍 当前目录: {current_dir}")
+        print(f"🔍 Python路径: {sys.path[:3]}...")
+        
+        # 检查核心目录
+        core_dir = current_dir / "core"
+        utils_dir = current_dir / "utils"
+        print(f"🔍 core目录存在: {core_dir.exists()}")
+        print(f"🔍 utils目录存在: {utils_dir.exists()}")
+        
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n❌ 启动失败: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

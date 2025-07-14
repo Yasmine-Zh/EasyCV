@@ -66,56 +66,69 @@ class EasyCVApp:
     
     def generate_initial_profile(self, profile_name: str, documents: List[str], 
                                job_description: str, template_path: str,
-                               style_reference: Optional[str] = None) -> str:
+                               style_reference: Optional[str] = None,
+                               language: str = "english") -> str:
         """
         Generate initial profile from documents and job description.
         
         Args:
             profile_name: Name for the profile
-            documents: List of input document paths
+            documents: List of document paths
             job_description: Job description text or file path
             template_path: Path to template file
-            style_reference: Optional style reference content
+            style_reference: Optional style reference content or file path
+            language: Resume language (english, chinese, bilingual)
             
         Returns:
-            Path to output directory
+            Path to generated profile
         """
-        try:
-            self.logger.info(f"Starting initial profile generation for: {profile_name}")
+        # Validate inputs
+        self._validate_inputs(documents, template_path)
+        
+        # Load documents
+        self.logger.info(f"Loading {len(documents)} documents...")
+        documents_text = {}
+        for doc_path in documents:
+            content = self.document_parser.parse_document(doc_path)
+            documents_text[doc_path] = content
             
-            # Validate inputs
-            self._validate_inputs(documents, template_path)
+        # Load job description
+        jd_text = self._load_job_description(job_description)
+        
+        # Load template
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
             
-            # Parse documents
-            self.logger.info("Parsing input documents...")
-            documents_text = self.document_parser.parse_documents(documents)
+        # Load style reference if provided
+        style_reference_content = ""
+        if style_reference:
+            if Path(style_reference).exists():
+                with open(style_reference, 'r', encoding='utf-8') as f:
+                    style_reference_content = f.read()
+            else:
+                style_reference_content = style_reference
             
-            # Load job description
-            jd_text = self._load_job_description(job_description)
-            
-            # Load template
-            template_content = self.template_engine.load_template(template_path)
-            
-            # Initialize AI processor
+        # Initialize AI processor if needed
+        if hasattr(self, 'config') and self.config.get('openai_api_key'):
             self.initialize_ai_processor()
             
             # Extract relevant experience using AI
             self.logger.info("Extracting relevant experience with AI...")
             extracted_info = self.ai_processor.extract_relevant_experience(
-                documents_text, jd_text
+                documents_text, jd_text, language
             )
             
             # Generate profile content
             self.logger.info("Generating profile content...")
             profile_content = self.ai_processor.generate_profile_from_template(
-                template_content, extracted_info, profile_name, jd_text
+                template_content, extracted_info, profile_name, jd_text, language
             )
             
             # Analyze style if reference provided
             style_analysis = None
             if style_reference and config.get('enable_style_analysis'):
                 self.logger.info("Analyzing style reference...")
-                style_analysis = self.ai_processor.analyze_resume_style(style_reference)
+                style_analysis = self.ai_processor.analyze_resume_style(style_reference_content)
             
             # Prepare profile data
             profile_data = {
@@ -267,6 +280,8 @@ Examples:
     gen_parser.add_argument('--jd', required=True, help='Job description (text or file path)')
     gen_parser.add_argument('--template', required=True, help='Template file path')
     gen_parser.add_argument('--style', help='Style reference content or file path')
+    gen_parser.add_argument('--language', choices=['english', 'chinese', 'bilingual'], 
+                           default='english', help='Resume language (default: english)')
     gen_parser.add_argument('--output-dir', help='Output directory (overrides config)')
     
     # Update command
@@ -328,7 +343,8 @@ def main():
                 documents=args.docs,
                 job_description=args.jd,
                 template_path=args.template,
-                style_reference=args.style
+                style_reference=args.style,
+                language=args.language
             )
             print(f"Profile generated successfully: {output_dir}")
             
