@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ name }} - Resume</title>
+    <style>
+        body { font-family: Helvetica, sans-serif; font-size: 14px; margin: 30px auto; max-width: 720px; color: #333; }
+        h1 { text-align: center; font-size: 26px; margin: 0; }
+        .contact { text-align: center; font-size: 12px; margin-bottom: 16px; }
+        h2 { font-size: 18px; border-bottom: 1px solid #ccc; margin-top: 20px; margin-bottom: 8px; }
+        .job, .edu { margin-bottom: 8px; }
+        ul { margin-top: 4px; margin-bottom: 4px; padding-left: 20px; }
+        li { margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+    <h1>{{ name }}</h1>
+    <div class="contact">{{ location }} · {{ email }} · {{ phone }}</div>
+
+    <h2>Summary</h2>
+    <p>{{ summary }}</p>
+
+    <h2>Experience</h2>
+    {% for exp in experiences %}
+    <div class="job"><strong>{{ exp.title }}</strong>, {{ exp.organization }} ({{ exp.time }})</div>
+    <ul>
+        {% for line in exp.content.split('\n') %}
+        <li>{{ line }}</li>
+        {% endfor %}
+    </ul>
+    {% endfor %}
+
+    <h2>Education</h2>
+    {% for edu in education %}
+    <div class="edu"><strong>{{ edu.degree }}</strong>, {{ edu.school }} ({{ edu.time }})</div>
+    <p>{{ edu.content }}</p>
+    {% endfor %}
+
+    <h2>Skills</h2>
+    <ul>
+        {% for skill in skills %}
+        <li>{{ skill.skill }} ({{ skill.degree }})</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Achievements</h2>
+    <ul>
+        {% for ach in achievements %}
+        <li>{{ ach }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

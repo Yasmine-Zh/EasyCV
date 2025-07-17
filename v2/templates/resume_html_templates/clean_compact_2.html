@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ name }}</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; font-size: 13px; margin: 2em auto; max-width: 700px; }
+        h1 { text-align: center; font-size: 24px; margin-bottom: 4px; }
+        .meta { text-align: center; font-size: 11px; color: #555; margin-bottom: 20px; }
+        h2 { font-size: 16px; border-bottom: 1px solid #ccc; margin-top: 24px; }
+        .section { margin-bottom: 12px; }
+        ul { padding-left: 1.2em; margin: 0; }
+        li { margin: 2px 0; }
+    </style>
+</head>
+<body>
+    <h1>{{ name }}</h1>
+    <div class="meta">{{ location }} · {{ email }} · {{ phone }}</div>
+
+    <div class="section">
+        <h2>Summary</h2>
+        <p>{{ summary }}</p>
+    </div>
+
+    <div class="section">
+        <h2>Experience</h2>
+        {% for exp in experiences %}
+        <p><strong>{{ exp.title }}</strong>, {{ exp.organization }} ({{ exp.time }})</p>
+        <ul>
+            {% for line in exp.content.split('\n') %}
+            <li>{{ line }}</li>
+            {% endfor %}
+        </ul>
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <h2>Education</h2>
+        {% for edu in education %}
+        <p><strong>{{ edu.degree }}</strong>, {{ edu.school }} ({{ edu.time }})</p>
+        <p>{{ edu.content }}</p>
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <h2>Skills</h2>
+        <ul>
+            {% for skill in skills %}
+            <li>{{ skill.skill }} ({{ skill.degree }})</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Achievements</h2>
+        <ul>
+            {% for ach in achievements %}
+            <li>{{ ach }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

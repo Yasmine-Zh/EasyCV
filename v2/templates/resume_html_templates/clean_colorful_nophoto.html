@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            max-width: 800px;
+            margin: 2em auto;
+            background-color: #f9f9f9;
+            color: #212529;
+        }
+        header {
+            background-color: #0077b6;
+            color: white;
+            padding: 1.2em;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .contact {
+            font-size: 13px;
+            margin-top: 0.3em;
+        }
+        a {
+            color: #f1f1f1;
+            text-decoration: underline;
+        }
+        h2 {
+            color: #0077b6;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 4px;
+            margin-top: 28px;
+        }
+        .section { margin-bottom: 1em; }
+        .header-line {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+        }
+        .subpoints {
+            font-size: 13px;
+            margin: 0 0 6px 1em;
+            padding-left: 1.2em;
+            color: #343a40;
+        }
+        ul.subpoints { list-style: disc; margin-top: 4px; }
+        li { margin: 2px 0; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 style="margin: 0;">{{ name }}</h1>
+        <div class="contact">
+            {{ location }} · {{ email }} · {{ phone }}<br>
+            <a href="{{ linkedin }}">{{ linkedin }}</a>
+        </div>
+    </header>
+
+    <div class="section">
+        <h2>Summary</h2>
+        <p>{{ summary }}</p>
+    </div>
+
+    <div class="section">
+        <h2>Experience</h2>
+        {% for exp in experiences %}
+        <div class="header-line">
+            <div>{{ exp.title }}, <strong>{{ exp.organization }}</strong></div>
+            <div>{{ exp.time }}</div>
+        </div>
+        <ul class="subpoints">
+            {% for line in exp.content.split('\n') %}
+            <li>{{ line }}</li>
+            {% endfor %}
+        </ul>
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <h2>Education</h2>
+        {% for edu in education %}
+        <div class="header-line">
+            <div><strong>{{ edu.school }}</strong>, {{ edu.degree }}</div>
+            <div>{{ edu.time }}</div>
+        </div>
+        <p class="subpoints">{{ edu.content }}</p>
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <h2>Skills</h2>
+        <ul class="subpoints">
+            {% for skill in skills %}
+            <li>{{ skill.skill }} ({{ skill.degree }})</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Achievements</h2>
+        <ul class="subpoints">
+            {% for ach in achievements %}
+            <li>{{ ach }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

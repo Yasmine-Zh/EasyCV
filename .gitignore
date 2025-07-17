@@ -175,3 +175,5 @@ cython_debug/
 
 
 v2/profiles/v*
+
+.DS_Store
