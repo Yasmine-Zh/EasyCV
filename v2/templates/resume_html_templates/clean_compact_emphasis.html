@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ name }}</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; font-size: 13px; margin: 2em auto; max-width: 700px; }
+        h1 { text-align: center; font-size: 24px; margin-bottom: 4px; }
+        .meta { text-align: center; font-size: 11px; color: #555; margin-bottom: 20px; }
+        h2 { font-size: 16px; border-bottom: 1px solid #ccc; margin-top: 24px; }
+        .section { margin-bottom: 12px; }
+        .header-line { display: flex; justify-content: space-between; font-weight: bold; }
+        .subpoints { font-size: 12px; margin: 0 0 6px 1em; padding-left: 1em; color: #333; }
+        ul.subpoints { list-style: disc; margin-top: 4px; }
+        li { margin: 2px 0; }
+    </style>
+</head>
+<body>
+    <h1>{{ name }}</h1>
+    <div class="meta">{{ location }} · {{ email }} · {{ phone }}</div>
+
+    <div class="section">
+        <h2>Summary</h2>
+        <p>{{ summary }}</p>
+    </div>
+
+    <div class="section">
+        <h2>Experience</h2>
+        {% for exp in experiences %}
+        <div class="header-line">
+            <div>{{ exp.title }}, <strong>{{ exp.organization }}</strong></div>
+            <div>{{ exp.time }}</div>
+        </div>
+        <ul class="subpoints">
+            {% for line in exp.content.split('\n') %}
+            <li>{{ line }}</li>
+            {% endfor %}
+        </ul>
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <h2>Education</h2>
+        {% for edu in education %}
+        <div class="header-line">
+            <div><strong>{{ edu.school }}</strong>, {{ edu.degree }}</div>
+            <div>{{ edu.time }}</div>
+        </div>
+        <p class="subpoints">{{ edu.content }}</p>
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <h2>Skills</h2>
+        <ul class="subpoints">
+            {% for skill in skills %}
+            <li>{{ skill.skill }} ({{ skill.degree }})</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Achievements</h2>
+        <ul class="subpoints">
+            {% for ach in achievements %}
+            <li>{{ ach }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

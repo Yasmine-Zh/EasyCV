@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ name }} - Resume</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        h1, h2 { color: #333; }
+        .section { margin-bottom: 2em; }
+        .job-title { font-weight: bold; }
+        .item-list { margin: 0.5em 0 0 1.5em; }
+    </style>
+</head>
+<body>
+    <h1 align="center">{{ name }}</h1>
+    <p align="center"><small>{{ location }} · {{ email }} · {{ phone }}</small></p>
+
+    <div class="section">
+        <h2>Summary</h2>
+        <p>{{ summary }}</p>
+    </div>
+
+    <div class="section">
+        <h2>Work Experience</h2>
+        {% for exp in experiences %}
+        <p class="job-title">{{ exp.title }}, {{ exp.organization }} ({{ exp.time }})</p>
+        <ul class="item-list">
+            {% for line in exp.content.split('\n') %}
+            <li>{{ line }}</li>
+            {% endfor %}
+        </ul>
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <h2>Education</h2>
+        {% for edu in education %}
+        <p class="job-title">{{ edu.degree }}, {{ edu.school }} ({{ edu.time }})</p>
+        <p>{{ edu.content }}</p>
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <h2>Skills</h2>
+        <ul class="item-list">
+            {% for skill in skills %}
+            <li>{{ skill.skill }} ({{ skill.degree }})</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Achievements</h2>
+        <ul class="item-list">
+            {% for ach in achievements %}
+            <li>{{ ach }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
