@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            max-width: 800px;
+            margin: 2em auto;
+            background-color: #f9f9f9;
+            color: #212529;
+        }
+        header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+            background-color: #0077b6;
+            color: white;
+            padding: 1.4em 1.2em;
+            border-radius: 8px;
+            
+        }
+        .contact {
+            font-size: 13px;
+            margin-top: 0.3em;
+        }
+        a { 
+            color: inherit;
+            text-decoration: underline; 
+            font-weight: 500; 
+        }
+        a:hover { 
+            color: #003366; 
+        }
+        h2 {
+            color: #0077b6;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 4px;
+            margin-top: 28px;
+        }
+        .section { margin-bottom: 1em; }
+        .subsection:hover {
+            background-color: #e8f1fb;
+            transition: background-color 0.2s ease;
+        }
+        .header-line {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+        }
+        .subpoints {
+            font-size: 13px;
+            margin: 0 0 6px 1em;
+            padding-left: 1.2em;
+            color: #343a40;
+        }
+        .subpoints:hover {
+            background-color: #e8f1fb;
+            transition: background-color 0.2s ease;
+        }
+        ul.subpoints { list-style: disc; margin-top: 4px; }
+        li { margin: 2px 0; }
+    
+.skills-inline {
+    font-size: 12px;
+    font-style: italic;
+    color: #495057;
+    margin: -4px 0 10px 0;
+}
+
+@media print {
+  header {
+    -webkit-print-color-adjust: exact; /* Chrome/Safari */
+    print-color-adjust: exact;         /* Firefox */
+  }
+}
+</style>
+</head>
+<body>
+    <header>
+        <h1 style="margin: 0; font-size: 30px;">{{ name }}</h1>
+        <div class="contact" style="text-align: right;">
+            <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/googlemaps.svg" alt="googlemaps" width="14" style="vertical-align: middle; margin-right: 4px;">{{ location }}  · <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/imessage.svg" alt="twilio" width="14" style="vertical-align: middle; margin-right: 4px;">{{ phone }}<br>
+            <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/gmail.svg" alt="minutemailer" width="14" style="vertical-align: middle; margin-right: 4px;">{{ email }} <br>
+            <a href="{{ linkedin }}"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/linkedin.svg" alt="LinkedIn" width="14" style="vertical-align: middle; margin-right: 4px;">LinkedIn</a> · <a href="{{ github }}"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/github.svg" alt="GitHub" width="14" style="vertical-align: middle; margin-right: 4px;">GitHub</a>
+        </div>
+    </header>
+
+    <div class="section">
+        <h2>Summary</h2>
+        <div class="subsection"><p>{{ summary }}</p></div>
+    </div>
+
+    <div class="section">
+        <h2>Experience</h2>
+        
+{% for exp in experiences %}
+    <div class="subsection">
+    <div class="header-line">
+        <div>{{ exp.title }}, <strong>{{ exp.organization }}</strong></div>
+        <div>{{ exp.time }}</div>
+    </div>
+
+    {% for proj in exp.projects %}
+        <p style="margin: 0.5em 0 0.2em 1em;"><i><strong>{{ proj.name }}</strong></i></p>
+        <ul class="subpoints">
+            <li>{{ proj.description | safe }}</li>
+            {% if proj.highlights %}
+                <!-- <ul class="subpoints"> -->
+                    {% for hl in proj.highlights %}
+                        <li>{{ hl | safe }}</li>
+                    {% endfor %}
+                <!-- </ul> -->
+            {% endif %}
+        </ul>
+        {% if proj.skills %}
+        <div class="skills-inline" style="margin-left: 4em;">
+            <strong>Skills:</strong> <strong>{{ proj.skills | join(', ') }}</strong>
+        </div>
+        {% endif %}
+    {% endfor %}
+    
+            </ul>
+{% if exp.skills %}
+<div class="skills-inline"><strong>Skills:</strong> <strong>{{ exp.skills | join(', ') }}</strong></div>
+{% endif %}
+    </div>  <!-- end of subsection -->
+        
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <h2>Education</h2>
+        
+        {% for edu in education %}
+        <div class="header-line">
+            <div><strong>{{ edu.school }}</strong></div>
+            <div>{{ edu.time }}</div>
+        </div>
+        <div class="header-line" style="font-size: 0.9em; font-style: italic; font-weight: normal; margin-bottom: 0.5em;">
+            <div>{{ edu.degree }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    
+    <div class="section">
+        <h2>Achievements</h2>
+        <ul class="subpoints">
+            {% if achievements %}
+                {% for ach in achievements %}
+                    <li style="margin-left: -1em;">{{ ach }}</li>
+                {% endfor %}
+            {% elif achievements_and_skills %}
+                {% for item in achievements_and_skills %}
+                    <li style="margin-left: -1em;">{{ item }}</li>
+                {% endfor %}
+            {% endif %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Technical Skills</h2>
+        <ul class="subpoints">
+            {% if skills %}
+                {% for sk in skills %}
+                    <li style="margin-left: -1em;">{{ sk }}</li>
+                {% endfor %}
+            {% elif achievements_and_skills %}
+                <!-- fallback if needed -->
+            {% endif %}
+        </ul>
+    </div>
+
+</body>
+</html>
